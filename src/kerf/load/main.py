@@ -393,7 +393,15 @@ def load(  # pylint: disable=too-many-arguments,too-many-positional-arguments,to
                 if entrypoint:
                     init_path = entrypoint
                 elif default_cmd:
-                    init_path = default_cmd[0]
+                    # kerf-init re-splits this string into argv, so the
+                    # whole command has to survive. Passing default_cmd[0]
+                    # alone drops the image CMD, and an entrypoint ending
+                    # in `exec "$@"` then execs nothing and exits.
+                    # read_entrypoint() stops at the first double quote, so
+                    # arguments containing spaces take single quotes.
+                    init_path = " ".join(
+                        f"'{arg}'" if " " in arg else arg for arg in default_cmd
+                    )
                 else:
                     click.echo(
                         "Error: Image has no ENTRYPOINT/CMD, use --entrypoint to specify init",
