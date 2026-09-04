@@ -409,6 +409,19 @@ int main(int argc, char *argv[])
         if (console_device[0] != '\0')
             setup_console(console_device);
 
+        /*
+         * PID 1 inherits no environment from the kernel, but a container
+         * image's entrypoint expects a shell environment: nginx's
+         * docker-entrypoint.sh ends in `exec nginx`, which fails with
+         * "nginx: not found" when PATH is unset. Seed the usual defaults,
+         * without clobbering anything already present.
+         */
+        setenv("PATH",
+               "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+               1);
+        setenv("HOME", "/root", 0);
+        setenv("TERM", "linux", 0);
+
         execv(ep_argv[0], ep_argv);
         log_error("execv");
         _exit(127);
